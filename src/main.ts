@@ -19,6 +19,7 @@ import { onUnexpectedError } from '@config/error.config';
 import { Logger } from '@config/logger.config';
 import { ROOT_DIR } from '@config/path.config';
 import * as Sentry from '@sentry/node';
+import { startKeepAlive } from '@utils/keepAlive';
 import { ServerUP } from '@utils/server-up';
 import axios from 'axios';
 import compression from 'compression';
@@ -157,7 +158,10 @@ async function bootstrap() {
     Sentry.setupExpressErrorHandler(app);
   }
 
-  server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
+  server.listen(httpServer.PORT, () => {
+    logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT);
+    startKeepAlive(httpServer.URL);
+  });
 
   initWA().catch((error) => {
     logger.error('Error loading instances: ' + error);
