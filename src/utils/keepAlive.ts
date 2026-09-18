@@ -9,15 +9,26 @@ export function startKeepAlive(serverUrl: string) {
     return;
   }
 
-  logger.info(`Self-ping Keep-Alive cron job active for ${serverUrl} (Every 10 mins).`);
+  // Normalize URL format
+  let targetUrl = serverUrl.trim();
+  if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+    targetUrl = `https://${targetUrl}`;
+  }
 
-  // Run every 10 minutes to prevent Render from going to sleep
-  cron.schedule('*/10 * * * *', async () => {
+  logger.info(`Keep-Alive Cron active: Pinging ${targetUrl} every 5 minutes to prevent Render sleep.`);
+
+  // Run every 5 minutes (well within Render's 15-minute idle sleep threshold)
+  cron.schedule('*/5 * * * *', async () => {
     try {
-      await axios.get(serverUrl);
-      logger.info(`Keep-Alive ping successful: ${serverUrl}`);
+      const response = await axios.get(targetUrl, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Evolution-API-KeepAlive/1.0',
+        },
+      });
+      logger.info(`Keep-Alive Ping OK [${response.status}]: ${targetUrl}`);
     } catch (error: any) {
-      logger.error(`Keep-Alive ping error: ${error?.message || error}`);
+      logger.error(`Keep-Alive Ping Warning: ${error?.message || error}`);
     }
   });
 }
